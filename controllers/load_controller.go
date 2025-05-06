@@ -4,10 +4,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 // Максимальный размер файла (ограничивает объем загружаемого файла)
 const maxUploadSize = int64(1 << 20) // 1MB
+const usersFilePath = "uploads"
 
 // Обработчик домашней страницы с возможностью загрузки файла
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +37,8 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Сохраняем файл на сервере
 		fname := handler.Filename
-		dst, err := os.Create(fname)
+		dstPath := filepath.Join(usersFilePath, fname)
+		dst, err := os.Create(dstPath)
 		if err != nil {
 			http.Error(w, "Ошибка при создании файла", http.StatusInternalServerError)
 			return

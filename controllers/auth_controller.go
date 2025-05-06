@@ -48,10 +48,11 @@ func LoginHandler(writer http.ResponseWriter, reader *http.Request) {
 				session.Values["authenticated"] = true
 				session.Save(reader, writer)
 				http.Redirect(writer, reader, "/home", http.StatusFound)
-			} else {
-				http.Error(writer, "Неправильное имя пользователя или пароль", http.StatusUnauthorized)
+				return
 			}
 		}
+		http.Error(writer, "Неправильное имя пользователя или пароль", http.StatusUnauthorized)
+
 	default:
 		http.Error(writer, "Метод не поддерживается", http.StatusMethodNotAllowed)
 	}
