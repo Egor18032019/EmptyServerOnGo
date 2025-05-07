@@ -2,29 +2,39 @@ package controllers
 
 import (
 	"io"
+	"my-go-webserver/global"
+	"my-go-webserver/services"
 	"net/http"
 	"os"
 	"path/filepath"
 )
 
 // Максимальный размер файла (ограничивает объем загружаемого файла)
-const maxUploadSize = int64(1 << 20) // 1MB
+const maxUploadSize = int64(1 << 20)
 const usersFilePath = "uploads"
 
 // Обработчик домашней страницы с возможностью загрузки файла
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "session-name")
+	session, _ := global.Store.Get(r, "session-name")
+	// Получаем username из сессии
+	username, ok := session.Values["username"].(string)
+	if !ok {
+		// Значение отсутствует или имеет неверный тип
+		println("Имя пользователя не найдено в сессии")
+		return
+	}
 	authenticated, ok := session.Values["authenticated"]
 	if !ok || authenticated != true {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-
+	// Ограничиваем размер всего запроса
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 	// Обрабатываем загрузку файла
 	if r.Method == http.MethodPost {
 		err := r.ParseMultipartForm(maxUploadSize)
 		if err != nil {
-			http.Error(w, "Ошибка анализа формы", http.StatusBadRequest)
+			http.Error(w, "Файл превышает допустимый размер.", http.StatusBadRequest)
 			return
 		}
 
@@ -50,7 +60,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Ошибка при сохранении файла", http.StatusInternalServerError)
 			return
 		}
-
+		services.LogRequest(r, "Пользователь "+username+" загрузил файл "+fname, true)
 		// Отвечаем пользователю об успешной загрузке
 		w.Write([]byte("Файл успешно загружен."))
 		return

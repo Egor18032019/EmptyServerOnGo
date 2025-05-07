@@ -1,16 +1,12 @@
 package controllers
 
 import (
-	"github.com/gorilla/sessions"
+	"my-go-webserver/global"
 	"my-go-webserver/models"
+	"my-go-webserver/services"
 	"net/http"
 	"strings"
 )
-
-/*
-Хранилище генерирует уникальный идентификатор сеанса и записывает его в cookie, отправляемый браузеру.
-*/
-var store = sessions.NewCookieStore([]byte("secret-key")) // хранилище сесий
 
 // Обработчик POST /login
 func LoginHandler(writer http.ResponseWriter, reader *http.Request) {
@@ -41,13 +37,16 @@ func LoginHandler(writer http.ResponseWriter, reader *http.Request) {
 		reader.ParseForm()
 		username := strings.TrimSpace(reader.PostFormValue("username"))
 		password := strings.TrimSpace(reader.PostFormValue("password"))
+		services.LogRequest(reader, "Попытка авторизации от: "+username+" "+password, true)
 		for _, u := range users {
 			// Проверка введенных данных
 			if u.Username == username && u.Password == password {
-				session, _ := store.Get(reader, "session-name")
+				session, _ := global.Store.Get(reader, "session-name")
 				session.Values["authenticated"] = true
+				session.Values["username"] = username
 				session.Save(reader, writer)
 				http.Redirect(writer, reader, "/home", http.StatusFound)
+				services.LogRequest(reader, "Пользователь авторизован - "+username, true)
 				return
 			}
 		}
